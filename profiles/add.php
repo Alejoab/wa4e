@@ -23,16 +23,16 @@ function check($f, $l, $e, $h, $s)
 }
 
 require("pdo.php");
-if (isset($_POST['fname']) && isset($_POST['lname']) && isset($_POST['email']) && isset($_POST['headline']) && isset($_POST['summary'])){
-    check($_POST['fname'], $_POST['lname'], $_POST['email'], $_POST['headline'], $_POST['summary']);
+if (isset($_POST['first_name']) && isset($_POST['last_name']) && isset($_POST['email']) && isset($_POST['headline']) && isset($_POST['summary'])){
+    check($_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['headline'], $_POST['summary']);
 
     if (!isset($_SESSION['error'])) {
         $stmt = $pdo->prepare('INSERT INTO profile(user_id, first_name, last_name, email, headline, summary) VALUES (:ui, :fn, :ln, :e, :h, :s)');
         $stmt->execute(
             array(
                 ':ui' => $_SESSION['user_id'],
-                ':fn' => $_POST['fname'],
-                ':ln' => $_POST['lname'],
+                ':fn' => $_POST['first_name'],
+                ':ln' => $_POST['last_name'],
                 ':e' => $_POST['email'],
                 ':h' => $_POST['headline'],
                 ':s' => $_POST['summary']
@@ -42,8 +42,8 @@ if (isset($_POST['fname']) && isset($_POST['lname']) && isset($_POST['email']) &
         header("Location: index.php");
         exit;
     } else {
-        $_SESSION['fn'] = $_POST['fname'];
-        $_SESSION['ln'] = $_POST['lname'];
+        $_SESSION['fn'] = $_POST['first_name'];
+        $_SESSION['ln'] = $_POST['last_name'];
         $_SESSION['e'] = $_POST['email'];
         $_SESSION['h'] = $_POST['headline'];
         $_SESSION['s'] = $_POST['summary'];
@@ -97,13 +97,13 @@ unset($_SESSION['s']);
                 </div>
                 <form method="post" class="form-group">
                     <div class="form-group">
-                        <label for="fname">First Name</label>
-                        <input type="text" name="fname" id="fname" class="form-control"
+                        <label for="first_name">First Name</label>
+                        <input type="text" name="first_name" id="first_name" class="form-control"
                             value="<?= htmlentities($fn) ?>">
                     </div>
                     <div class="form-group">
-                        <label for="lname">Last Name</label>
-                        <input type="text" name="lname" id="lname" class="form-control"
+                        <label for="last_name">Last Name</label>
+                        <input type="text" name="last_name" id="last_name" class="form-control"
                             value="<?= htmlentities($ln) ?>">
                     </div>
                     <div class="form-group">
@@ -132,8 +132,8 @@ unset($_SESSION['s']);
     <script>
         function doValidate() {
             try {
-                fn = document.getElementById('fname').value;
-                ln = document.getElementById('lname').value;
+                fn = document.getElementById('first_name').value;
+                ln = document.getElementById('last_name').value;
                 e = document.getElementById('email').value;
                 h = document.getElementById('headline').value;
                 s = document.getElementById('summary').value;
