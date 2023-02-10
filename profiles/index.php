@@ -58,6 +58,8 @@ session_start();
                             echo ('<td>' . htmlentities($row['headline']) . '</td>');
                             if (isset($_SESSION['user_id']) && $_SESSION['user_id'] === $row['user_id'] ){
                                 echo ('<td><a href="edit.php?profile_id=' . $row['profile_id'] . '">Edit</a> / <a href="delete.php?profile_id=' . $row['profile_id'] . '">Delete</a></td>');
+                            } elseif (isset($_SESSION['user_id'])) {
+                                echo ("<td></td>");
                             }
                             echo ("<tr>");
                         }
