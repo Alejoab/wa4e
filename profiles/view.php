@@ -29,7 +29,7 @@ $s = $row['summary'];
     <title>Alejandro Alvarez Botero</title>
 
     <?php require_once('head_html.php') ?>
-    
+
 </head>
 
 <body>
@@ -64,13 +64,25 @@ $s = $row['summary'];
                     </div>
 
                     <h5>Positions</h5>
-                    <u class="list-group">
+                    <u class="list-group mb-4">
                         <?php
                             require_once("pdo.php");
                             $stmt = $pdo->prepare("SELECT year, description FROM position WHERE profile_id = :pi ORDER BY rank");
                             $stmt->execute(array(":pi" => $_GET['profile_id']));
                             while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
                                 echo('<li class="list-group-item"><strong>' . htmlentities($row['year']). ':</strong>   ' . htmlentities($row['description']) . '</li>');
+                            }
+                        ?>
+                    </u>
+
+                    <h5>Education</h5>
+                    <u class="list-group mb-4">
+                        <?php
+                            require_once("pdo.php");
+                            $stmt = $pdo->prepare("SELECT education.year, institution.name FROM education, institution WHERE education.profile_id = :pi AND education.institution_id = institution.institution_id ORDER BY education.rank");
+                            $stmt->execute(array(":pi" => $_GET['profile_id']));
+                            while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
+                                echo('<li class="list-group-item"><strong>' . htmlentities($row['year']). ':</strong>   ' . htmlentities($row['name']) . '</li>');
                             }
                         ?>
                     </u>
