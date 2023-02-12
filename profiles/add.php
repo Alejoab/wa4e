@@ -40,7 +40,7 @@ function validatePos() {
         return;
       }
     }
-  }
+}
 
 require("pdo.php");
 if (isset($_POST['first_name']) && isset($_POST['last_name']) && isset($_POST['email']) && isset($_POST['headline']) && isset($_POST['summary'])){
@@ -165,7 +165,6 @@ unset($_SESSION['s']);
                         <input type="submit" value="+" id="addPost">
                     </div>
                     <div id="position_fields"></div>
-                    <input type="text" name="numberPositions" value="0" hidden>
                     <div class="form-group">
                         <input type="submit" class="btn btn-primary save-btn" value="Add" onclick="return doValidate();">
                         <input type="submit" class="btn btn-danger" name="cancel" value="Cancel">
