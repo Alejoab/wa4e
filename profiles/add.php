@@ -22,9 +22,31 @@ function check($f, $l, $e, $h, $s)
     }
 }
 
+function validatePos() {
+    for($i=0; $i<9; $i++) {
+      if ( ! isset($_POST["year"][$i]) ) continue;
+      if ( ! isset($_POST["textYear"][$i]) ) continue;
+  
+      $year = $_POST["year"][$i];
+      $desc = $_POST["textYear"][$i];
+  
+      if ( strlen($year) == 0 || strlen($desc) == 0 ) {
+        $_SESSION['error'] = "All fields are required";
+        return;
+      }
+  
+      if ( ! is_numeric($year) ) {
+        $_SESSION['error'] = "Position year must be numeric";
+        return;
+      }
+    }
+  }
+
 require("pdo.php");
 if (isset($_POST['first_name']) && isset($_POST['last_name']) && isset($_POST['email']) && isset($_POST['headline']) && isset($_POST['summary'])){
+
     check($_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['headline'], $_POST['summary']);
+    validatePos();
 
     if (!isset($_SESSION['error'])) {
         $stmt = $pdo->prepare('INSERT INTO profile(user_id, first_name, last_name, email, headline, summary) VALUES (:ui, :fn, :ln, :e, :h, :s)');
@@ -38,6 +60,23 @@ if (isset($_POST['first_name']) && isset($_POST['last_name']) && isset($_POST['e
                 ':s' => $_POST['summary']
             )
         );
+
+        $profile_id = $pdo->lastInsertId();
+
+        for($i=0; $i<9; $i++) {
+            if ( ! isset($_POST["year"][$i]) ) continue;
+            if ( ! isset($_POST["textYear"][$i]) ) continue;
+
+            $stmt = $pdo->prepare('INSERT INTO Position (profile_id, rank, year, description) VALUES ( :pid, :rank, :year, :desc)');
+
+            $stmt->execute(array(
+            ':pid' => $profile_id,
+            ':rank' => $i,
+            ':year' => $_POST["year"][$i],
+            ':desc' => $_POST["textYear"][$i])
+            );
+        }
+
         $_SESSION['success'] = "Record Added";
         header("Location: index.php");
         exit;
@@ -78,6 +117,7 @@ unset($_SESSION['s']);
         integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css"
         integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.2.1.js" integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE=" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -121,6 +161,12 @@ unset($_SESSION['s']);
                         <textarea type="text" name="summary" id="summary" class="form-control" rows="5"><?=htmlentities($s)?></textarea>
                     </div>
                     <div class="form-group">
+                        <label for="positiion">Position</label>
+                        <input type="submit" value="+" id="addPost">
+                    </div>
+                    <div id="position_fields"></div>
+                    <input type="text" name="numberPositions" value="0" hidden>
+                    <div class="form-group">
                         <input type="submit" class="btn btn-primary save-btn" value="Add" onclick="return doValidate();">
                         <input type="submit" class="btn btn-danger" name="cancel" value="Cancel">
                     </div>
@@ -150,7 +196,37 @@ unset($_SESSION['s']);
                 return false;
             }
             return false;
-     }
+        }
+        
+        countPos = 0;
+
+        $(document).ready(function(){
+            $('#addPost').click(function(event){
+                event.preventDefault();
+                
+                if (countPos === 9) {
+                    alert("No se pueden mas");
+                    return;
+                }
+
+                var count = countPos;
+                countPos += 1;
+                
+                $('#position_fields').append(
+                    '<div class="form-group" id="divYear'+count+'">\
+                    <label>Year</label>\
+                    <input type="text" name="year[]">\
+                    <input type="button" value="-" onclick="deleteYear('+count+');">\
+                    <textarea type="text" name="textYear[]" class="form-control" rows="5"></textarea>\
+                    </div>');
+                });
+                
+            })
+
+        function deleteYear(value){
+            $('#divYear'+value).remove();
+            countPos -= 1;
+        }
     </script>
     
 </body>
