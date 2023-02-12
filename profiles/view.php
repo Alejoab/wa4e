@@ -36,7 +36,7 @@ $s = $row['summary'];
 
 <body>
     <div class="container mt-3">
-        <h1>Editing Profile</h1>
+        <h1>Viewing Profile</h1>
         <div class="card">
             <div class="card-body">
                 <form class="form-group">
@@ -64,6 +64,19 @@ $s = $row['summary'];
                         <label for="summary">Summary</label>
                         <textarea type="text" name="summary" id="summary" class="form-control" rows="5" readonly><?=htmlentities($s)?></textarea>
                     </div>
+
+                    <h5>Positions</h5>
+                    <u class="list-group">
+                        <?php
+                            require_once("pdo.php");
+                            $stmt = $pdo->prepare("SELECT year, description FROM position WHERE profile_id = :pi ORDER BY rank");
+                            $stmt->execute(array(":pi" => $_GET['profile_id']));
+                            while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
+                                echo('<li class="list-group-item"><strong>' . htmlentities($row['year']). ':</strong>   ' . htmlentities($row['description']) . '</li>');
+                            }
+                        ?>
+                    </u>
+
                     <div class="form-group">
                         <a href="index.php">Back</a>
                     </div>
