@@ -27,34 +27,97 @@ function check($f, $l, $e, $h, $s)
         $_SESSION['error'] = "Email address must contain @";
         return;
     }
-}
 
-function validatePos() {
     for($i=0; $i<9; $i++) {
-      if ( ! isset($_POST["year"][$i]) ) continue;
-      if ( ! isset($_POST["textYear"][$i]) ) continue;
-  
-      $year = $_POST["year"][$i];
-      $desc = $_POST["textYear"][$i];
-  
-      if ( strlen($year) == 0 || strlen($desc) == 0 ) {
-        $_SESSION['error'] = "All fields are required";
-        return;
-      }
-  
-      if ( ! is_numeric($year) ) {
-        $_SESSION['error'] = "Position year must be numeric";
-        return;
-      }
+        if ( ! isset($_POST["year"][$i]) ) continue;
+        if ( ! isset($_POST["textYear"][$i]) ) continue;
+    
+        $year = $_POST["year"][$i];
+        $desc = $_POST["textYear"][$i];
+    
+        if ( strlen($year) == 0 || strlen($desc) == 0 ) {
+            $_SESSION['error'] = "All fields are required";
+            return;
+        }
+    
+        if ( ! is_numeric($year) ) {
+            $_SESSION['error'] = "Position year must be numeric";
+            return;
+        }
+    }
+
+    for($i=0; $i<9; $i++) {
+        if ( ! isset($_POST["yearEdu"][$i]) ) continue;
+        if ( ! isset($_POST["textSchool"][$i]) ) continue;
+    
+        $year = $_POST["yearEdu"][$i];
+        $desc = $_POST["textSchool"][$i];
+    
+        if ( strlen($year) == 0 || strlen($desc) == 0 ) {
+            $_SESSION['error'] = "All fields are required";
+            return;
+        }
+    
+        if ( ! is_numeric($year) ) {
+            $_SESSION['error'] = "Position year must be numeric";
+            return;
+        }
     }
 }
 
-require("pdo.php");
+function addPosition($pdo, $profile_id){
+    $stmt = $pdo->prepare("DELETE FROM position WHERE profile_id = :pi");
+    $stmt->execute(array(":pi" => $_GET["profile_id"]));
+
+    for($i=0; $i<9; $i++) {
+        if ( ! isset($_POST["year"][$i]) ) continue;
+        if ( ! isset($_POST["textYear"][$i]) ) continue;
+
+        $stmt = $pdo->prepare('INSERT INTO Position (profile_id, rank, year, description) VALUES ( :pid, :rank, :year, :desc)');
+
+        $stmt->execute(array(
+        ':pid' => $profile_id,
+        ':rank' => $i,
+        ':year' => $_POST["year"][$i],
+        ':desc' => $_POST["textYear"][$i])
+        );
+    }
+}
+
+function addEducation($pdo, $profile_id){
+    $stmt = $pdo->prepare("DELETE FROM education WHERE profile_id = :pi");
+    $stmt->execute(array(":pi" => $_GET["profile_id"]));
+
+    for($i=0; $i<9; $i++) {
+        if ( ! isset($_POST["yearEdu"][$i]) ) continue;
+        if ( ! isset($_POST["textSchool"][$i]) ) continue;
+
+        $stmt = $pdo->prepare('SELECT institution_id FROM institution WHERE name = :name');
+        $stmt->execute(array('name'=> $_POST['textSchool'][$i]));
+        $institution_id = $stmt->fetch(PDO::FETCH_ASSOC)['institution_id'];
+
+        if (! $institution_id) {
+            $stmt = $pdo->prepare('INSERT INTO institution(name) VALUES (:name)');
+            $stmt->execute(array('name'=> $_POST['textSchool'][$i]));
+            $institution_id = $pdo->lastInsertId();
+        }
+
+        $stmt = $pdo->prepare('INSERT INTO education(profile_id, institution_id, rank, year) VALUES ( :pid, :iid, :rank, :year)');
+
+        $stmt->execute(array(
+        ':pid' => $profile_id,
+        ':iid' => $institution_id,
+        ':rank' => $i,
+        ':year' => $_POST["yearEdu"][$i]
+        ));
+    }
+}
+
 if (isset($_POST['first_name']) && isset($_POST['last_name']) && isset($_POST['email']) && isset($_POST['headline']) && isset($_POST['summary'])){
     check($_POST['first_name'], $_POST['last_name'], $_POST['email'], $_POST['headline'], $_POST['summary']);
-    validatePos();
-
+    
     if (!isset($_SESSION['error'])) {
+        require("pdo.php");
         $stmt = $pdo->prepare('UPDATE profile SET first_name = :fn, last_name = :ln, email = :e, headline = :h, summary = :s WHERE profile_id = :pi');
         $stmt->execute(
             array(
@@ -69,33 +132,19 @@ if (isset($_POST['first_name']) && isset($_POST['last_name']) && isset($_POST['e
 
         $profile_id = $_GET['profile_id'];
 
-        $stmt = $pdo->prepare("DELETE FROM position WHERE profile_id = :pi");
-        $stmt->execute(array(":pi" => $_GET["profile_id"]));
-
-
-        for($i=0; $i<9; $i++) {
-            if ( ! isset($_POST["year"][$i]) ) continue;
-            if ( ! isset($_POST["textYear"][$i]) ) continue;
-
-            $stmt = $pdo->prepare('INSERT INTO Position (profile_id, rank, year, description) VALUES ( :pid, :rank, :year, :desc)');
-
-            $stmt->execute(array(
-            ':pid' => $profile_id,
-            ':rank' => $i,
-            ':year' => $_POST["year"][$i],
-            ':desc' => $_POST["textYear"][$i])
-            );
-        }
+        addPosition($pdo, $profile_id);
+        addEducation($pdo, $profile_id);
 
         $_SESSION['success'] = "Record Edited";
         header("Location: index.php");
         exit;
     } else {
-        header("location: add.php");
+        header("location: edit.php?profile_id=".$_GET['profile_id']);
         return;
     }
 }
 
+require("pdo.php");
 $stmt = $pdo->prepare("SELECT * FROM profile WHERE profile_id = :pi AND user_id = :ui");
 $stmt->execute(array(":pi" => $_GET['profile_id'], ":ui" => $_SESSION['user_id']));
 $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -121,6 +170,17 @@ while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
     $rank = $row['rank'];
 
     $position[] = ["year" => $year, "description" => $desc, "rank" => $rank];
+}
+
+$education = [];
+$stmt = $pdo->prepare("SELECT education.year, institution.name, education.rank FROM education, institution WHERE education.profile_id = :pi AND education.institution_id = institution.institution_id ORDER BY education.rank");
+$stmt->execute(array(":pi" => $_GET['profile_id']));
+while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
+    $year = $row['year'];
+    $name = $row['name'];
+    $rank = $row['rank'];
+
+    $education[] = ["year" => $year, "name" => $name, "rank" => $rank];
 }
 ?>
 
@@ -180,7 +240,7 @@ while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
                         <label for="positiion">Position</label>
                         <input type="submit" value="+" id="addPost">
                     </div>
-                    <div id="position_fields" class="form-group">
+                    <div id="position_fields"">
                         <?php
                             foreach($position as $pos) {
                                 echo('<div class="form-group" id="divYear'. $pos['rank'] . '">');
@@ -192,6 +252,24 @@ while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
                             }
                         ?>
                     </div>
+
+                    <div class="form-group">
+                        <label for="education">Education</label>
+                        <input type="submit" value="+" id="addEducation">
+                    </div>
+                    <div id="education_fields" class="form-group">
+                        <?php
+                            foreach($education as $edu) {
+                                echo('<div class="form-group" id="divEduYear'. $edu['rank'] . '">');
+                                echo('<label>Year</label>');
+                                echo('<input type="text" name="yearEdu[]" value="' . htmlentities($edu['year']) . '">');
+                                echo('<input type="button" value="-" onclick="deleteYearEdu(' . $edu['rank'] . ');"><br><label>School</label>');
+                                echo('<input type="text" name="textSchool[]" class="school" value="' . htmlentities($edu['name']) . '"></input>');
+                                echo('</div>');
+                            }
+                        ?>
+                    </div>
+
                     <div class="form-group">
                         <input type="submit" class="btn btn-primary save-btn" value="Save" onclick="return doValidate();">
                         <input type="submit" class="btn btn-danger" name="cancel" value="Cancel">
@@ -223,7 +301,18 @@ while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
             return false;
         }
 
+        function deleteYearEdu(value){
+            $('#divEduYear'+value).remove();
+            countEdu -= 1;
+        }
+        
+        function deleteYear(value){
+            $('#divYear'+value).remove();
+            countPos -= 1;
+        }
+
         countPos = $("#position_fields").find('div').length;
+        countEdu = $("#education_fields").find('div').length;
 
         $(document).ready(function(){
             $('#addPost').click(function(event){
@@ -245,13 +334,33 @@ while($row = $stmt->fetch(PDO::FETCH_ASSOC)){
                     <textarea type="text" name="textYear[]" class="form-control" rows="5"></textarea>\
                     </div>');
             });
+
+            $('#addEducation').click(function(event){
+                event.preventDefault();
+                
+                if (countEdu === 9) {
+                    alert("No se pueden mas");
+                    return;
+                }
+                
+                var count = countEdu;
+                countEdu += 1;
+                
+                $('#education_fields').append(
+                    '<div class="form-group" id="divEduYear'+count+'">\
+                    <label>Year</label>\
+                    <input type="text" name="yearEdu[]">\
+                    <input type="button" value="-" onclick="deleteYearEdu('+count+');">\
+                    <br>\
+                    <label>School</label>\
+                    <input type="text" name="textSchool[]" class="school" value=""></input>\
+                    </div>');
+
+                $('.school').autocomplete({ source: "school.php" });
+
+            });
                 
         })
-
-        function deleteYear(value){
-            $('#divYear'+value).remove();
-            countPos -= 1;
-        }
     </script>
 </body>
 
